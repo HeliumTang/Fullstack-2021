@@ -4,6 +4,7 @@ import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
 
 import api from './api'
+import Notification from './components/Notification'
 
 const App = () => {
   const [persons, setPersons] = useState([])
@@ -11,6 +12,8 @@ const App = () => {
   const [newName, setNewName] = useState('')
   const [newPhone, setNewPhone] = useState('')
   const [filterValue, setFilterValue] = useState('')
+  const [message, setMessage] = useState('')
+  const [msgType, setMsgType] = useState('')
 
   useEffect(() => {
     async function fetchData() {
@@ -27,6 +30,15 @@ const App = () => {
 
   const setPhone = (event) => {
     setNewPhone(event.target.value)
+  }
+
+  const sendNotification = (message, msgType) => {
+    setMessage(message)
+    setMsgType(msgType)
+    setTimeout(() => {
+      setMessage('')
+      setMsgType('')
+    }, 5000)
   }
 
   const addNewPerson = async (event) => {
@@ -52,6 +64,10 @@ const App = () => {
           setNewPhone('')
           setPersons(newPersons)
           setFiltered(filterPersons(newPersons, filterValue))
+          sendNotification(
+            `${updatedPerson.name}'s number is changed`,
+            'message',
+          )
         }
       }
     } else {
@@ -61,16 +77,26 @@ const App = () => {
       setFiltered(filterPersons(newPersons, filterValue))
       setNewName('')
       setNewPhone('')
+      sendNotification(`Added ${newPerson.name}`, 'message')
     }
   }
 
   const deletePerson = (id) => {
     const person = filtered.find((person) => person.id === id)
     if (window.confirm(`Delete ${person.name}`)) {
-      api.remove(id)
-      const persons = filtered.filter((person) => person.id !== id)
-      setPersons(persons)
-      setFiltered(filterPersons(persons, filterValue))
+      api
+        .remove(id)
+        .then(() => {
+          const persons = filtered.filter((person) => person.id !== id)
+          setPersons(persons)
+          setFiltered(filterPersons(persons, filterValue))
+        })
+        .catch(() => {
+          sendNotification(
+            `Information of ${person.name} has already been removed from server`,
+            'error',
+          )
+        })
     }
   }
 
@@ -89,6 +115,8 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+
+      {message ? <Notification message={message} type={msgType} /> : <></>}
 
       <Filter value={filterValue} handleChange={handleFilterValue} />
 

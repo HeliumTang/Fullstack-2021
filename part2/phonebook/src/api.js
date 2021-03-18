@@ -16,8 +16,8 @@ const create = async (newObject) => {
 const remove = async (id) => {
   try {
     await axios.delete(`${baseUrl}/${id}`)
-  } catch (err) {
-    console.log(err)
+  } catch (error) {
+    throw error
   }
 }
 
