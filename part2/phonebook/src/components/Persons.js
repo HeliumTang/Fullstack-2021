@@ -6,9 +6,12 @@ const Person = ({ name, phone }) => {
   )
 }
 
-const Persons = ({ persons }) => {
+const Persons = ({ persons, handleClick }) => {
   return persons.map((person) => (
-    <Person key={person.name} name={person.name} phone={person.number} />
+    <div key={person.id}>
+      <Person name={person.name} phone={person.number} />
+      <button onClick={() => handleClick(person.id)}>delete</button>
+    </div>
   ))
 }
 

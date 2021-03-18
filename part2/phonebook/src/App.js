@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import Filter from './components/Filter'
 import PersonForm from './components/PersonForm'
 import Persons from './components/Persons'
-import axios from 'axios'
+
+import api from './api'
 
 const App = () => {
   const [persons, setPersons] = useState([])
@@ -12,11 +13,12 @@ const App = () => {
   const [filterValue, setFilterValue] = useState('')
 
   useEffect(() => {
-    axios.get('http://localhost:3001/persons').then((response) => {
-      const data = response.data
+    async function fetchData() {
+      const data = await api.getAll()
       setPersons(data)
       setFiltered(filterPersons(data))
-    })
+    }
+    fetchData()
   }, [])
 
   const setName = (event) => {
@@ -27,18 +29,48 @@ const App = () => {
     setNewPhone(event.target.value)
   }
 
-  const addNewPerson = (event) => {
+  const addNewPerson = async (event) => {
     event.preventDefault()
-
-    if (persons.filter((person) => person.name === newName).length > 0) {
-      return alert(`${newName} is already added to phonebook`)
+    const oldPerson = persons.filter((person) => person.name === newName)
+    if (oldPerson.length > 0) {
+      if (!newPhone) {
+        return alert(`${newName} is already added to phonebook`)
+      } else {
+        if (
+          window.confirm(
+            `${oldPerson[0].name} is already added to phonebook, replace the old number with a new one?`,
+          )
+        ) {
+          const updatedPerson = await api.update(oldPerson[0].id, {
+            ...oldPerson[0],
+            number: newPhone,
+          })
+          const newPersons = persons.map((person) =>
+            person.id === updatedPerson.id ? updatedPerson : person,
+          )
+          setNewName('')
+          setNewPhone('')
+          setPersons(newPersons)
+          setFiltered(filterPersons(newPersons, filterValue))
+        }
+      }
     } else {
-      const newPerson = { name: newName, number: newPhone }
+      const newPerson = await api.create({ name: newName, number: newPhone })
       const newPersons = [...persons, newPerson]
       setPersons(newPersons)
       setFiltered(filterPersons(newPersons, filterValue))
       setNewName('')
       setNewPhone('')
+    }
+  }
+
+  const deletePerson = (id) => {
+    const person = filtered.find((person) => person.id === id)
+    if (window.confirm(`Delete ${person.name}`)) {
+      api.remove(id)
+      const persons = filtered.filter((person) => person.id !== id)
+      setPersons(persons)
+      setFiltered(filterPersons(persons, filterValue))
     }
   }
 
@@ -70,7 +102,7 @@ const App = () => {
       />
 
       <h3>Numbers</h3>
-      <Persons persons={filtered} />
+      <Persons persons={filtered} handleClick={deletePerson} />
     </div>
   )
 }
